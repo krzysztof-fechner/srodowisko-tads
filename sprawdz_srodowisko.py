@@ -32,7 +32,16 @@ def zbierz_sprawdzenia():
          gitignore.is_file() and ".venv" in gitignore.read_text(encoding="utf-8")),
     ]
 
+def srednia(liczby):
+    if not liczby: 
+        return 0
+    sr = sum(liczby)/len(liczby)
+    return sr
+
 def main():
+    moje_dane = []
+    wynik = srednia(moje_dane)
+    print(wynik)
     print(f"System: {platform.system()} {platform.release()}")
     print(f"Interpreter: {sys.executable}")
     print("-" * 66)
@@ -48,3 +57,6 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+
