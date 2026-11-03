@@ -43,3 +43,15 @@ def policz_wskazniki(sciezka, region=None):
         "koszt": round(suma_koszt, 2),
         "marza": marza,
     }
+
+
+# Magazyn raportów w pamięci procesu
+lista_RAPORTY = []
+
+def zapisz_raport(rok, region):
+    raport = {"rok": int(rok), "region": str(region)}
+    lista_RAPORTY.append(raport)
+    return raport
+
+def raporty_roku(rok):
+    return [r for r in lista_RAPORTY if r["rok"] == int(rok)]
