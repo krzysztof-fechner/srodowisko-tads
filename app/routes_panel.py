@@ -1,5 +1,6 @@
-from flask import Blueprint, abort, current_app, redirect, request, url_for
-from .services import dostepne_regiony, policz_wskazniki, raporty_roku, zapisz_raport
+from datetime import date
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
+from .services import dostepne_regiony, policz_wskazniki, raporty_roku, zapisz_raport, zestawienie_regionow
 
 panel_bp = Blueprint("panel", __name__)
 ROK_DOMYSLNY = 2026
@@ -17,8 +18,8 @@ def kpi():
     
     w = policz_wskazniki(sciezka, region)
     current_app.logger.info("Obliczono wskaźniki dla regionu %s", w["region"])
-    kod_regionu = w["region"] if w["region"] else "Wszystkie"
-    return f"<h1>Wskaźniki: {kod_regionu}</h1><p>Marża: {w['marza']:.2%}</p>"
+    zestawienie = zestawienie_regionow(sciezka)
+    return render_template("panel.html", wskazniki=w, zestawienie=zestawienie, dzisiaj=date.today())
 
 @panel_bp.get("/regiony/<region:kod>")
 def region(kod):
@@ -27,13 +28,14 @@ def region(kod):
         abort(404, description=f"Nieznany region: {kod}")
     
     w = policz_wskazniki(sciezka, kod)
-    return f"<h1>Region {kod}</h1><p>Zamówień: {w['liczba_zamowien']}</p>"
+    zestawienie = zestawienie_regionow(sciezka)
+    return render_template("panel.html", wskazniki=w, zestawienie=zestawienie, dzisiaj=date.today())
 
 @panel_bp.get("/raporty/", defaults={"rok": ROK_DOMYSLNY})
 @panel_bp.get("/raporty/<int(min=2020, max=2030):rok>")
 def raport(rok):
     raporty = raporty_roku(rok)
-    return f"<h1>Raport {rok}</h1><p>Zapisane raporty: {len(raporty)}</p>"
+    return render_template("report.html", rok=rok, zapisane=raporty)
 
 @panel_bp.route("/raporty/nowy", methods=["GET", "POST"])
 def nowy_raport():
@@ -48,6 +50,7 @@ def nowy_raport():
             abort(422, description="Rok poza zakresem 2020-2030")
         
         zapisz_raport(rok, region)
+        flash(f"Raport za rok {rok} został zapisany", "sukces")
         return redirect(url_for("panel.raport", rok=rok), 303)
     
     return "Instrukcja: wyslij formularz POST z polami rok i region"
