@@ -1,7 +1,14 @@
 from datetime import date
-from .forms import FiltrForm
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
-from .services import dostepne_regiony, policz_wskazniki, raporty_roku, zapisz_raport, zestawienie_regionow
+from .forms import FiltrForm, RaportForm
+from .services import (
+    dostepne_regiony,
+    policz_wskazniki,
+    raporty_roku,
+    wykaz_raportow,
+    zapisz_raport,
+    zestawienie_regionow,
+)
 
 panel_bp = Blueprint("panel", __name__)
 ROK_DOMYSLNY = 2026
@@ -50,21 +57,22 @@ def raport(rok):
 
 @panel_bp.route("/raporty/nowy", methods=["GET", "POST"])
 def nowy_raport():
-    if request.method == "POST":
-        rok = request.form.get("rok", type=int)
-        region = request.form.get("region")
-        
-        sciezka = current_app.config["SCIEZKA_DANYCH"]
-        if rok is None or region not in dostepne_regiony(sciezka):
-            abort(400, description="Niepoprawne dane formularza")
-        if not (2020 <= rok <= 2030):
-            abort(422, description="Rok poza zakresem 2020-2030")
-        
-        zapisz_raport(rok, region)
-        flash(f"Raport za rok {rok} został zapisany", "sukces")
-        return redirect(url_for("panel.raport", rok=rok), 303)
-    
-    return "Instrukcja: wyslij formularz POST z polami rok i region"
+    sciezka = current_app.config["SCIEZKA_DANYCH"]
+    istniejace = {(r["rok"], r["region"]) for r in wykaz_raportow()}
+    formularz = RaportForm(istniejace=istniejace)
+    formularz.region.choices = [(r, r) for r in dostepne_regiony(sciezka)]
+
+    if formularz.validate_on_submit():
+        zapisz_raport(
+            formularz.rok.data,
+            formularz.region.data,
+            formularz.uwagi.data or "",
+        )
+        flash(f"Raport za rok {formularz.rok.data} zapisany", "success")
+        return redirect(url_for("panel.raport", rok=formularz.rok.data), 303)
+
+    status = 422 if formularz.errors else 200
+    return render_template("new_report.html", formularz=formularz), status
 
 @panel_bp.get("/stary-panel")
 def stary_panel():

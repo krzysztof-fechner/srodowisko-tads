@@ -46,15 +46,16 @@ def policz_wskazniki(sciezka, region=None):
 
 
 # Magazyn raportów w pamięci procesu
-lista_RAPORTY = []
+_RAPORTY = []
 
-def zapisz_raport(rok, region):
-    raport = {"rok": int(rok), "region": str(region)}
-    lista_RAPORTY.append(raport)
-    return raport
+def zapisz_raport(rok, region, uwagi=""):
+    _RAPORTY.append({"rok": rok, "region": region, "uwagi": uwagi})
+
+def wykaz_raportow():
+    return list(_RAPORTY)
 
 def raporty_roku(rok):
-    return [r for r in lista_RAPORTY if r["rok"] == int(rok)]
+    return [r for r in _RAPORTY if r["rok"] == int(rok)]
 
 def zestawienie_regionow(sciezka):
     regiony = sorted(dostepne_regiony(sciezka))

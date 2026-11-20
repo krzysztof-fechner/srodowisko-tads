@@ -2,11 +2,14 @@ import logging
 import time
 from datetime import date
 from flask import Flask, g
+from flask_wtf.csrf import CSRFProtect
 from .config import KONFIGURACJE
 from .converters import RegionConverter
 from .errors import zarejestruj_obsluge_bledow
 from .filters import zarejestruj_filtry
 from .services import dostepne_regiony
+
+csrf = CSRFProtect()
 
 def create_app(nazwa_konfiguracji="rozwojowa"):
     app = Flask(__name__)
@@ -35,6 +38,7 @@ def create_app(nazwa_konfiguracji="rozwojowa"):
             response.headers["X-Czas-Ms"] = f"{czas_ms:.2f}"
         return response
 
+    csrf.init_app(app)
     zarejestruj_obsluge_bledow(app)
 
     from .routes_api import api_bp
