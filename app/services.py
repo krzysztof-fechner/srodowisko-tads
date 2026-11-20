@@ -59,3 +59,22 @@ def raporty_roku(rok):
 def zestawienie_regionow(sciezka):
     regiony = sorted(dostepne_regiony(sciezka))
     return [policz_wskazniki(sciezka, r) for r in regiony]
+
+def policz_wskazniki(sciezka, region=None, rok=None):
+    zamowienia = wczytaj_zamowienia(sciezka)
+    if region:
+        zamowienia = [z for z in zamowienia if z["region"] == region]
+    if rok is not None:
+        zamowienia = [z for z in zamowienia if z["data"].startswith(str(rok))]
+    
+    przychod = sum(z["przychod"] for z in zamowienia)
+    koszt = sum(z["koszt"] for z in zamowienia)
+    marza = round((przychod - koszt) / przychod, 4) if przychod else 0.0
+    
+    return {
+        "region": region or "wszystkie",
+        "liczba_zamowien": len(zamowienia),
+        "przychod": przychod,
+        "koszt": koszt,
+        "marza": marza,
+    }

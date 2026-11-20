@@ -1,4 +1,5 @@
 from datetime import date
+from .forms import FiltrForm
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from .services import dostepne_regiony, policz_wskazniki, raporty_roku, zapisz_raport, zestawienie_regionow
 
@@ -12,14 +13,24 @@ def index():
 @panel_bp.get("/kpi")
 def kpi():
     sciezka = current_app.config["SCIEZKA_DANYCH"]
-    region = request.args.get("region")
-    if region is not None and region not in dostepne_regiony(sciezka):
-        abort(404, description=f"Nieznany region: {region}")
+    formularz = FiltrForm(request.args)
+    formularz.region.choices = [("", "wszystkie")] + [(r, r) for r in dostepne_regiony(sciezka)]
     
-    w = policz_wskazniki(sciezka, region)
-    current_app.logger.info("Obliczono wskaźniki dla regionu %s", w["region"])
-    zestawienie = zestawienie_regionow(sciezka)
-    return render_template("panel.html", wskazniki=w, zestawienie=zestawienie, dzisiaj=date.today())
+    region = rok = None
+    if formularz.validate():
+        region = formularz.region.data or None
+        rok = formularz.rok.data
+    else:
+        flash("Kryteria zawężenia zostały pominięte", "warning")
+        
+    w = policz_wskazniki(sciezka, region, rok)
+    return render_template(
+        "panel.html",
+        formularz=formularz,
+        wskazniki=w,
+        zestawienie=zestawienie_regionow(sciezka),
+        dzisiaj=date.today(),
+    )
 
 @panel_bp.get("/regiony/<region:kod>")
 def region(kod):
