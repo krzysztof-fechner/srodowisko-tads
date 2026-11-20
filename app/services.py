@@ -1,5 +1,17 @@
 import csv
+import io
 from pathlib import Path
+
+WYMAGANE_KOLUMNY = {"data", "region", "przychod", "koszt"}
+
+def wczytaj_zbior(strumien):
+    tresc = strumien.read().decode("utf-8")
+    czytnik = csv.DictReader(io.StringIO(tresc))
+    naglowki = set(czytnik.fieldnames or [])
+    brakujace = sorted(WYMAGANE_KOLUMNY - naglowki)
+    if brakujace:
+        raise ValueError(f"brak kolumn: {', '.join(brakujace)}")
+    return sum(1 for _ in czytnik)
 
 def wczytaj_zamowienia(sciezka):
     p = Path(sciezka)
