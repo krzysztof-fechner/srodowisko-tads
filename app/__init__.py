@@ -29,9 +29,9 @@ def create_app(nazwa_konfiguracji="rozwojowa"):
     @app.context_processor
     def dane_wspolne():
         return {
-            "regiony": dostepne_regiony(app.config["SCIEZKA_DANYCH"]),
+            "regiony": dostepne_regiony(),
             "rok_biezacy": date.today().year,
-        }
+    }
 
     @app.before_request
     def start_timer():

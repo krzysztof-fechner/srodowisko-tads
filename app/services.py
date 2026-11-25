@@ -1,12 +1,88 @@
 import csv
 import io
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from sqlalchemy import func
 from .extensions import db
 from .models import Raport, Zamowienie
-from pathlib import Path
 
 WYMAGANE_KOLUMNY = {"data", "region", "przychod", "koszt"}
+
+
+def dostepne_regiony():
+    zapytanie = db.select(Zamowienie.region).distinct().order_by(Zamowienie.region)
+    return list(db.session.scalars(zapytanie).all())
+
+
+def _zawez(zapytanie, region, rok):
+    if region:
+        zapytanie = zapytanie.where(Zamowienie.region == region)
+    if rok is not None:
+        zapytanie = zapytanie.where(
+            Zamowienie.data >= date(rok, 1, 1),
+            Zamowienie.data < date(rok + 1, 1, 1),
+        )
+    return zapytanie
+
+
+def policz_wskazniki(region=None, rok=None):
+    zapytanie = _zawez(
+        db.select(
+            func.count().label("liczba_zamowien"),
+            func.coalesce(func.sum(Zamowienie.przychod), 0).label("przychod"),
+            func.coalesce(func.sum(Zamowienie.koszt), 0).label("koszt"),
+        ),
+        region,
+        rok,
+    )
+    wiersz = db.session.execute(zapytanie).one()
+    przychod = Decimal(wiersz.przychod)
+    koszt = Decimal(wiersz.koszt)
+    marza = (
+        ((przychod - koszt) / przychod).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+        if przychod
+        else Decimal("0")
+    )
+
+    return {
+        "region": region or "wszystkie",
+        "liczba_zamowien": wiersz.liczba_zamowien,
+        "przychod": przychod,
+        "koszt": koszt,
+        "marza": marza,
+    }
+
+
+def zestawienie_regionow():
+    zapytanie = (
+        db.select(
+            Zamowienie.region.label("region"),
+            func.count().label("liczba_zamowien"),
+            func.coalesce(func.sum(Zamowienie.przychod), 0).label("przychod"),
+            func.coalesce(func.sum(Zamowienie.koszt), 0).label("koszt"),
+        )
+        .group_by(Zamowienie.region)
+        .order_by(Zamowienie.region)
+    )
+    wynik = []
+    for w in db.session.execute(zapytanie).all():
+        przychod = Decimal(w.przychod)
+        koszt = Decimal(w.koszt)
+        marza = (
+            ((przychod - koszt) / przychod).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+            if przychod
+            else Decimal("0")
+        )
+        wynik.append(
+            {
+                "region": w.region,
+                "liczba_zamowien": w.liczba_zamowien,
+                "przychod": przychod,
+                "koszt": koszt,
+                "marza": marza,
+            }
+        )
+    return wynik
 
 def wczytaj_zbior(strumien):
     tekst = strumien.read().decode("utf-8")
@@ -32,81 +108,16 @@ def wczytaj_zbior(strumien):
 
     return numer - 1
 
-def wczytaj_zamowienia(sciezka):
-    p = Path(sciezka)
-    if not p.is_file():
-        return []
-    dane = []
-    with open(p, mode="r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            dane.append({
-                # strip() usuwa przypadkowe spacje przy nazwach kolumn i wartościach
-                "data": row["data"].strip(),
-                "region": row["region"].strip(),
-                "przychod": float(row["przychod"].strip()),
-                "koszt": float(row["koszt"].strip()),
-            })
-    return dane
-
-def dostepne_regiony(sciezka):
-    zamowienia = wczytaj_zamowienia(sciezka)
-    return sorted(list({z["region"] for z in zamowienia}))
-
-def policz_wskazniki(sciezka, region=None):
-    zamowienia = wczytaj_zamowienia(sciezka)
-    if region is not None:
-        zamowienia = [z for z in zamowienia if z["region"] == region]
-
-    liczba_zamowien = len(zamowienia)
-    suma_przychod = sum(z["przychod"] for z in zamowienia)
-    suma_koszt = sum(z["koszt"] for z in zamowienia)
-
-    if suma_przychod > 0:
-        marza = round((suma_przychod - suma_koszt) / suma_przychod, 4)
-    else:
-        marza = 0.0
-
-    return {
-        "region": region,
-        "liczba_zamowien": liczba_zamowien,
-        "przychod": round(suma_przychod, 2),
-        "koszt": round(suma_koszt, 2),
-        "marza": marza,
-    }
-
-
-# Magazyn raportów w pamięci procesu
 _RAPORTY = []
+
+
+def raporty_roku(rok):
+    return [r for r in _RAPORTY if r["rok"] == rok]
+
 
 def zapisz_raport(rok, region, uwagi=""):
     _RAPORTY.append({"rok": rok, "region": region, "uwagi": uwagi})
 
+
 def wykaz_raportow():
     return list(_RAPORTY)
-
-def raporty_roku(rok):
-    return [r for r in _RAPORTY if r["rok"] == int(rok)]
-
-def zestawienie_regionow(sciezka):
-    regiony = sorted(dostepne_regiony(sciezka))
-    return [policz_wskazniki(sciezka, r) for r in regiony]
-
-def policz_wskazniki(sciezka, region=None, rok=None):
-    zamowienia = wczytaj_zamowienia(sciezka)
-    if region:
-        zamowienia = [z for z in zamowienia if z["region"] == region]
-    if rok is not None:
-        zamowienia = [z for z in zamowienia if z["data"].startswith(str(rok))]
-    
-    przychod = sum(z["przychod"] for z in zamowienia)
-    koszt = sum(z["koszt"] for z in zamowienia)
-    marza = round((przychod - koszt) / przychod, 4) if przychod else 0.0
-    
-    return {
-        "region": region or "wszystkie",
-        "liczba_zamowien": len(zamowienia),
-        "przychod": przychod,
-        "koszt": koszt,
-        "marza": marza,
-    }
