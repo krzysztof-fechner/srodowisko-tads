@@ -1,17 +1,36 @@
 import csv
 import io
+from datetime import date
+from decimal import Decimal, InvalidOperation
+from .extensions import db
+from .models import Raport, Zamowienie
 from pathlib import Path
 
 WYMAGANE_KOLUMNY = {"data", "region", "przychod", "koszt"}
 
 def wczytaj_zbior(strumien):
-    tresc = strumien.read().decode("utf-8")
-    czytnik = csv.DictReader(io.StringIO(tresc))
-    naglowki = set(czytnik.fieldnames or [])
-    brakujace = sorted(WYMAGANE_KOLUMNY - naglowki)
-    if brakujace:
-        raise ValueError(f"brak kolumn: {', '.join(brakujace)}")
-    return sum(1 for _ in czytnik)
+    tekst = strumien.read().decode("utf-8")
+    odczyt = csv.DictReader(io.StringIO(tekst))
+    brak = WYMAGANE_KOLUMNY - set(odczyt.fieldnames or [])
+    if brak:
+        raise ValueError("brak kolumn: " + ", ".join(sorted(brak)))
+
+    numer = 1
+    try:
+        for numer, w in enumerate(odczyt, start=2):
+            zamowienie = Zamowienie(
+                data=date.fromisoformat(w["data"]),
+                region=w["region"],
+                przychod=Decimal(w["przychod"]),
+                koszt=Decimal(w["koszt"]),
+            )
+            db.session.add(zamowienie)
+        db.session.commit()
+    except (ValueError, InvalidOperation) as blad:
+        db.session.rollback()
+        raise ValueError(f"wiersz {numer}: niepoprawna data lub liczba") from blad
+
+    return numer - 1
 
 def wczytaj_zamowienia(sciezka):
     p = Path(sciezka)

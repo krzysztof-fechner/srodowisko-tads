@@ -3,18 +3,24 @@ import time
 from datetime import date
 from flask import Flask, g
 from flask_wtf.csrf import CSRFProtect
+from .commands import zarejestruj_polecenia
 from .config import KONFIGURACJE
 from .converters import RegionConverter
 from .errors import zarejestruj_obsluge_bledow
+from .extensions import db, migrate
 from .filters import zarejestruj_filtry
 from .services import dostepne_regiony
 
 csrf = CSRFProtect()
 
+
 def create_app(nazwa_konfiguracji="rozwojowa"):
     app = Flask(__name__)
     app.config.from_object(KONFIGURACJE[nazwa_konfiguracji])
     app.logger.setLevel(logging.INFO)
+
+    db.init_app(app)
+    migrate.init_app(app, db, render_as_batch=True)
 
     app.url_map.converters["region"] = RegionConverter
 
@@ -40,6 +46,7 @@ def create_app(nazwa_konfiguracji="rozwojowa"):
 
     csrf.init_app(app)
     zarejestruj_obsluge_bledow(app)
+    zarejestruj_polecenia(app)
 
     from .routes_api import api_bp
     from .routes_panel import panel_bp

@@ -9,6 +9,8 @@ class Config:
     DEBUG = False
     WTF_I18N_ENABLED = False
     MAX_CONTENT_LENGTH = 1024 * 1024
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///panel.db")
+    SQLALCHEMY_ECHO = False
 
 class RozwojowaConfig(Config):
     DEBUG = True

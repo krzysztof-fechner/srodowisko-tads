@@ -1,4 +1,4 @@
-/* Arkusz stylów panelu wskaźników (ćwiczenia 4 i 5). Dostarczony w materiałach: zastępuje plik z ćwiczeń 4. */
+/* Arkusz stylów panelu wskaźników (ćwiczenia 4-7). Pokrywa wszystkie szablony projektu; dostarczony w materiałach: zastępuje poprzedni plik. */
 
 /* Zmienne: kolory i odstęp */
 :root {
@@ -26,11 +26,22 @@ body {
 
 /* Nagłówki */
 h1 { margin: 1.5rem 0 var(--odstep); font-size: 1.6rem; }
+main p { margin: .5rem 0; }
+
+/* Listy i odsyłacze w treści strony (strona startowa) */
+main ul { margin: .5rem 0; padding-left: 1.25rem; }
+main li { margin: .25rem 0; }
+main a { color: var(--kolor-akcent-ciemny); }
 
 /* Nawigacja */
-nav { display: flex; gap: var(--odstep); border-bottom: 2px solid var(--kolor-linia); padding-bottom: .5rem; }
+nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--odstep); border-bottom: 2px solid var(--kolor-linia); padding-bottom: .5rem; }
 nav a { color: var(--kolor-tekst); text-decoration: none; padding: .25rem .5rem; }
 nav a.aktywna { border-bottom: 3px solid var(--kolor-akcent); font-weight: 700; }
+nav span { margin-left: auto; font-size: .9rem; color: #566174; }
+nav a[href*="logowanie"] { margin-left: auto; font-weight: 700; }
+nav form[method="post"] { display: inline; margin: 0; max-width: none; }
+nav button { padding: .25rem .75rem; font-size: .9rem; font-weight: 400; color: var(--kolor-tekst); background: transparent; border: 1px solid var(--kolor-pole); }
+nav button:hover { color: #FFFFFF; background: var(--kolor-tekst); }
 
 /* Kafelki wskaźników (ćwiczenia 4) */
 .kafelki { display: flex; flex-wrap: wrap; gap: var(--odstep); margin: var(--odstep) 0; }
@@ -80,8 +91,9 @@ form[method="get"] .pole { flex: 0 1 12rem; margin: 0; }
 .pole { margin-bottom: var(--odstep); }
 .pole label { display: block; margin-bottom: .25rem; font-size: .9rem; font-weight: 700; }
 
-/* Kontrolki formularzy: liczby, listy, pola tekstowe, pliki, pola wyboru */
+/* Kontrolki formularzy: tekst, hasło, liczby, listy, pola tekstowe, pliki, pola wyboru */
 input[type="text"],
+input[type="password"],
 input[type="number"],
 select,
 textarea {
