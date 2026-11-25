@@ -16,7 +16,7 @@ ROK_DOMYSLNY = 2026
 
 @panel_bp.get("/")
 def index():
-    return "Panel wskaźników"
+    return render_template("index.html")
 
 @panel_bp.get("/kpi")
 def kpi():
@@ -58,18 +58,20 @@ def raport(rok):
 
 @panel_bp.route("/raporty/nowy", methods=["GET", "POST"])
 def nowy_raport():
-    istniejace = {(r["rok"], r["region"]) for r in wykaz_raportow()}
+    istniejace = {(r.rok, r.region) for r in wykaz_raportow()}
     formularz = RaportForm(istniejace=istniejace)
-    formularz.region.choices = [(r, r) for r in dostepne_regiony()]
+    formularz.region.choices = [(k, k) for k in dostepne_regiony()]
 
     if formularz.validate_on_submit():
-        zapisz_raport(
+        if zapisz_raport(
             formularz.rok.data,
             formularz.region.data,
             formularz.uwagi.data or "",
-        )
-        flash(f"Raport za rok {formularz.rok.data} zapisany", "success")
-        return redirect(url_for("panel.raport", rok=formularz.rok.data), 303)
+            formularz.szczegoly.data,
+        ):
+            flash(f"Raport za rok {formularz.rok.data} zapisany", "success")
+            return redirect(url_for("panel.raport", rok=formularz.rok.data), 303)
+        formularz.rok.errors.append("Raport za ten rok i region już istnieje")
 
     status = 422 if formularz.errors else 200
     return render_template("new_report.html", formularz=formularz), status

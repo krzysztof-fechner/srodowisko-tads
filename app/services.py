@@ -3,6 +3,7 @@ import io
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from .extensions import db
 from .models import Raport, Zamowienie
 
@@ -108,16 +109,25 @@ def wczytaj_zbior(strumien):
 
     return numer - 1
 
-_RAPORTY = []
-
-
-def raporty_roku(rok):
-    return [r for r in _RAPORTY if r["rok"] == rok]
-
-
-def zapisz_raport(rok, region, uwagi=""):
-    _RAPORTY.append({"rok": rok, "region": region, "uwagi": uwagi})
+def zapisz_raport(rok, region, uwagi="", szczegoly=False):
+    raport = Raport(rok=rok, region=region, uwagi=uwagi, szczegoly=szczegoly)
+    db.session.add(raport)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return None
+    return raport
 
 
 def wykaz_raportow():
-    return list(_RAPORTY)
+    zapytanie = db.select(Raport).order_by(Raport.rok.desc(), Raport.region)
+    return list(db.session.scalars(zapytanie).all())
+
+
+def raporty_roku(rok):
+    zapytanie = db.select(Raport).where(Raport.rok == rok).order_by(Raport.region)
+    return [
+        {"rok": r.rok, "region": r.region, "uwagi": r.uwagi or ""}
+        for r in db.session.scalars(zapytanie).all()
+    ]

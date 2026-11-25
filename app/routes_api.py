@@ -1,6 +1,6 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 from flask import Blueprint, abort, jsonify, request
-from .services import dostepne_regiony, policz_wskazniki
+from .services import dostepne_regiony, policz_wskazniki, raporty_roku
 
 api_bp = Blueprint("api", __name__)
 
@@ -15,3 +15,11 @@ def api_kpi():
     if region and region not in dostepne_regiony():
         abort(404)
     return jsonify(_jako_liczby(policz_wskazniki(region)))
+
+
+@api_bp.get("/raporty")
+def api_raporty():
+    rok = request.args.get("rok", type=int)
+    if rok is None:
+        abort(400)
+    return jsonify({"rok": rok, "raporty": raporty_roku(rok)})

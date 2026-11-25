@@ -1,9 +1,9 @@
-{# partials/navigation.html #}
 <nav>
+    <a href="{{ url_for('panel.index') }}">Start</a>
     <a href="{{ url_for('panel.kpi') }}">Panel</a>
-    {% for kod in regiony %}
-    <a href="{{ url_for('panel.region', kod=kod) }}"
-    {% if kod in ((request.view_args or {}).get('kod'), request.args.get('region')) %}class="aktywna"{% endif %}>
-    {{ kod }}</a>
+    {% for r in regiony %}
+        <a href="{{ url_for('panel.region', kod=r) }}">{{ r }}</a>
     {% endfor %}
+    <a href="{{ url_for('panel.nowy_raport') }}">Nowy raport</a>
+    <a href="{{ url_for('panel.wczytaj') }}">Wczytanie zbioru</a>
 </nav>

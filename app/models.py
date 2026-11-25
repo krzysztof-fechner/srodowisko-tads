@@ -1,9 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, false, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .extensions import db
-
 
 class Raport(db.Model):
     __tablename__ = "raport"
@@ -16,6 +15,7 @@ class Raport(db.Model):
         DateTime, nullable=False, server_default=func.now()
     )
     uwagi: Mapped[str | None] = mapped_column(String, nullable=True)
+    szczegoly: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
 
     zamowienia: Mapped[list["Zamowienie"]] = relationship(back_populates="raport")
 
